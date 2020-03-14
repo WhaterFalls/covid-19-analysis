@@ -1,0 +1,9 @@
+*.DS_Store
+*.pyc
+*.Rhistory
+*.pdf
+*.ipynb
+*.html
+*.idea
+.vscode/*
+*.csv
