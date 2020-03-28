@@ -1,117 +1,164 @@
 import pandas as pd
 
-covid_confirmed = pd.read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv')
-covid_recovered = pd.read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv')
-covid_deaths = pd.read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv')
 
-id_variables = ['Province/State', 'Country/Region', 'Lat', 'Long']
+def main():
+    cases_with_pop = pd.read_csv('https://coronadatascraper.com/timeseries.csv')
+    supplement = pd.read_csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
 
-covid_confirmed = covid_confirmed.melt(id_vars = id_variables,
-                                       var_name = 'ReportDate',
-                                       value_name = 'ConfirmedCases')
-covid_recovered = covid_recovered.melt(id_vars = id_variables,
-                                       var_name = 'ReportDate',
-                                       value_name = 'Recoveries')
-covid_deaths = covid_deaths.melt(id_vars = id_variables,
-                                 var_name = 'ReportDate',
-                                 value_name = 'Deaths')
-del id_variables
+    print(sorted(list(supplement[(supplement['state']=='Massachusetts')]['county'].unique())))
 
-join_variables = ['ReportDate', 'Country/Region', 'Province/State']
+    # add in NYC data
+    to_fill = supplement[(supplement['state']=='New York') & (supplement['county']=='New York City')]
+    def fill_in(row):
+        dt = row['date']
+        deaths = row['deaths']
+        cases_with_pop.loc[(cases_with_pop['state']=='NY') & (cases_with_pop['city']=='New York City') & (cases_with_pop['date'] == dt), 'deaths'] = deaths
 
-covid = pd.merge(left = covid_confirmed,
-                 right = covid_recovered, 
-                 how = 'left', 
-                 on = join_variables, 
-                 suffixes = ['', '_drop'])
-covid = covid.loc[:, covid.columns[~covid.columns.str.endswith('_drop')]]
-covid = pd.merge(left = covid,
-                 right = covid_deaths,
-                 how = 'left',
-                 on = join_variables,
-                 suffixes = ['', '_drop'])
-covid = covid.loc[:, covid.columns[~covid.columns.str.endswith('_drop')]]
+    to_fill.apply(fill_in, axis=1)
+    cases_with_pop.loc[(cases_with_pop['state']=='NY') & (cases_with_pop['city']=='New York City')]
 
-covid['Country/Region'].fillna('Unknown', inplace = True)
-covid['Province/State'].fillna('Unknown', inplace = True)
+    # fill in counties
+    for c in get_configs():
+        to_fill = supplement[(supplement['state']==c['right_state']) & (supplement['county']==c['right_county'])]
+        def fill_in_county(row):
+            dt = row['date']
+            deaths = row['deaths']
+            cases_with_pop.loc[(cases_with_pop['state']==c['left_state']) & (cases_with_pop['county']==c['left_county']) & (cases_with_pop['date'] == dt), 'deaths'] = deaths
 
-del covid_confirmed, covid_recovered, covid_deaths
+        to_fill.apply(fill_in_county, axis=1)
+        cases_with_pop.loc[(cases_with_pop['state']==c['left_state']) & (cases_with_pop['county']==c['left_county'])]
 
-covid['Province/State'] = covid['Province/State'].str.strip()  # Fixes issue of extra space
-covid.loc[:, 'US_State'] = covid['Province/State'].str[-2:]
-covid.loc[(covid['Country/Region'] != 'US') | ([abbrev.upper() != abbrev for abbrev in covid['US_State']]), 'US_State'] = None
-covid.loc[covid['US_State'] == 'C.', 'US_State'] = 'DC'
+    cases_with_pop.to_csv('data/cases_with_pop.csv')
 
-covid['ReportDate'] = covid['ReportDate'].astype('datetime64')
 
-states_to_classify = covid.loc[covid['US_State'].isnull(), :]['Province/State'].unique().tolist()
+def get_configs():
+    return [
+        {
+            'left_state': 'NY',
+            'left_county': 'Suffolk County',
+            'right_state': 'New York',
+            'right_county': 'Suffolk'
+        },
+        {
+            'left_state': 'NY',
+            'left_county': 'Westchester County',
+            'right_state': 'New York',
+            'right_county': 'Westchester'
+        },
+        {
+            'left_state': 'NY',
+            'left_county': 'Nassau County',
+            'right_state': 'New York',
+            'right_county': 'Nassau'
+        },
+        {
+            'left_state': 'NY',
+            'left_county': 'Rockland County',
+            'right_state': 'New York',
+            'right_county': 'Rockland'
+        },
+        {
+            'left_state': 'GA',
+            'left_county': 'Cobb County',
+            'right_state': 'Georgia',
+            'right_county': 'Cobb'
+        },
+        {
+            'left_state': 'GA',
+            'left_county': 'DeKalb County',
+            'right_state': 'Georgia',
+            'right_county': 'DeKalb'
+        },
+        {
+            'left_state': 'GA',
+            'left_county': 'Fulton County',
+            'right_state': 'Georgia',
+            'right_county': 'Fulton'
+        },
+        {
+            'left_state': 'GA',
+            'left_county': 'Gwinnett County',
+            'right_state': 'Georgia',
+            'right_county': 'Gwinnett'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Bristol County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Bristol'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Essex County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Essex'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Middlesex County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Middlesex'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Norfolk County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Norfolk'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Plymouth County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Plymouth'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Suffolk County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Suffolk'
+        },
+        {
+            'left_state': 'MA',
+            'left_county': 'Worcester County',
+            'right_state': 'Massachusetts',
+            'right_county': 'Worcester'
+        },
+                {
+            'left_state': 'NJ',
+            'left_county': 'Bergen County',
+            'right_state': 'New Jersey',
+            'right_county': 'Bergen'
+        },
+        {
+            'left_state': 'NJ',
+            'left_county': 'Essex County',
+            'right_state': 'New Jersey',
+            'right_county': 'Essex'
+        },
+        {
+            'left_state': 'NJ',
+            'left_county': 'Hudson County',
+            'right_state': 'New Jersey',
+            'right_county': 'Hudson'
+        },
+        {
+            'left_state': 'NJ',
+            'left_county': 'Middlesex County',
+            'right_state': 'New Jersey',
+            'right_county': 'Middlesex'
+        },
+        {
+            'left_state': 'NJ',
+            'left_county': 'Monmouth County',
+            'right_state': 'New Jersey',
+            'right_county': 'Monmouth'
+        },
+        {
+            'left_state': 'NJ',
+            'left_county': 'Union County',
+            'right_state': 'New Jersey',
+            'right_county': 'Union'
+        }
+    ]
 
-states = {
-        'AK': 'Alaska',
-        'AL': 'Alabama',
-        'AR': 'Arkansas',
-        'AS': 'American Samoa',
-        'AZ': 'Arizona',
-        'CA': 'California',
-        'CO': 'Colorado',
-        'CT': 'Connecticut',
-        'DC': 'District of Columbia',
-        'DE': 'Delaware',
-        'FL': 'Florida',
-        'GA': 'Georgia',
-        'GU': 'Guam',
-        'HI': 'Hawaii',
-        'IA': 'Iowa',
-        'ID': 'Idaho',
-        'IL': 'Illinois',
-        'IN': 'Indiana',
-        'KS': 'Kansas',
-        'KY': 'Kentucky',
-        'LA': 'Louisiana',
-        'MA': 'Massachusetts',
-        'MD': 'Maryland',
-        'ME': 'Maine',
-        'MI': 'Michigan',
-        'MN': 'Minnesota',
-        'MO': 'Missouri',
-        'MP': 'Northern Mariana Islands',
-        'MS': 'Mississippi',
-        'MT': 'Montana',
-        'NA': 'National',
-        'NC': 'North Carolina',
-        'ND': 'North Dakota',
-        'NE': 'Nebraska',
-        'NH': 'New Hampshire',
-        'NJ': 'New Jersey',
-        'NM': 'New Mexico',
-        'NV': 'Nevada',
-        'NY': 'New York',
-        'OH': 'Ohio',
-        'OK': 'Oklahoma',
-        'OR': 'Oregon',
-        'PA': 'Pennsylvania',
-        'PR': 'Puerto Rico',
-        'RI': 'Rhode Island',
-        'SC': 'South Carolina',
-        'SD': 'South Dakota',
-        'TN': 'Tennessee',
-        'TX': 'Texas',
-        'UT': 'Utah',
-        'VA': 'Virginia',
-        'VI': 'Virgin Islands',
-        'VT': 'Vermont',
-        'WA': 'Washington',
-        'WI': 'Wisconsin',
-        'WV': 'West Virginia',
-        'WY': 'Wyoming'
-}
-
-def get_state_abbrev(state_name):  
-  for abbrev, state in states.items():
-    if state == state_name:
-      return abbrev
-    
-for state in states_to_classify:
-  covid.loc[covid['Province/State'] == state, 'US_State'] = get_state_abbrev(state)
-  
-covid.to_csv('/Users/jhwa/Documents/jason/covid-19/data/cases.csv')
+main()
