@@ -5,7 +5,7 @@ def main():
     cases_with_pop = pd.read_csv('https://coronadatascraper.com/timeseries.csv')
     supplement = pd.read_csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv')
 
-    print(sorted(list(supplement[(supplement['state']=='Massachusetts')]['county'].unique())))
+    print(sorted(list(supplement[(supplement['state']=='Louisiana')]['county'].unique())))
 
     # add in NYC data
     to_fill = supplement[(supplement['state']=='New York') & (supplement['county']=='New York City')]
@@ -158,6 +158,24 @@ def get_configs():
             'left_county': 'Union County',
             'right_state': 'New Jersey',
             'right_county': 'Union'
+        },
+        {
+            'left_state': 'LA',
+            'left_county': 'Jefferson County',
+            'right_state': 'Louisiana',
+            'right_county': 'Jefferson'
+        },
+        {
+            'left_state': 'LA',
+            'left_county': 'Orleans County',
+            'right_state': 'Louisiana',
+            'right_county': 'Orleans'
+        },
+        {
+            'left_state': 'LA',
+            'left_county': 'St. Tammany Parish',
+            'right_state': 'Louisiana',
+            'right_county': 'St. Tammany'
         }
     ]
 
