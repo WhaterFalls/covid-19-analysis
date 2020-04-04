@@ -104,4 +104,4 @@ def get_state_abbrev(state_name):
 for state in states_to_classify:
   covid.loc[covid['Province/State'] == state, 'US_State'] = get_state_abbrev(state)
   
-covid.to_csv('/Users/jhwa/Documents/jason/covid-19/data/jhu_cases.csv')
+covid.to_csv('data/jhu_cases.csv')
